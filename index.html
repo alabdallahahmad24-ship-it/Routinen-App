@@ -1,0 +1,1642 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routinenplaner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Load Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Import Map for React 19 -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.1.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.1.0/client",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/"
+  }
+}
+</script>
+    <style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: #0079BF; /* Trello blue */
+        color: #172b4d; /* Dark text color */
+        height: 100vh;
+        overflow-y: hidden; 
+    }
+
+    #root {
+        height: 100%;
+    }
+
+    .app-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 0 10px;
+    }
+
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 10px;
+        background-color: #0067A3; /* Slightly darker Trello blue */
+        color: white;
+    }
+
+    .app-header h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    .zoom-controls button {
+        background-color: #0079BF;
+        color: white;
+        border: 1px solid #005282;
+        border-radius: 8px;
+        padding: 4px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .zoom-controls button:hover {
+        background-color: #026aa7;
+    }
+    .zoom-level-display {
+        margin-left: 10px;
+        font-size: 13px;
+        min-width: 40px; /* Ensure space for percentage */
+        text-align: right;
+    }
+
+
+    .add-list-form {
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 8px; 
+        display: flex;
+        align-items: center;
+    }
+
+    .add-list-form input[type="text"] {
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px; 
+        margin-right: 10px;
+        flex-grow: 1;
+        font-size: 14px;
+    }
+
+    .add-list-form button {
+        padding: 8px 15px;
+        background-color: #5aac44; 
+        color: white;
+        border: none;
+        border-radius: 8px; 
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .add-list-form button:hover {
+        background-color: #61bd4f;
+    }
+
+    .lists-outer-container {
+        flex-grow: 1;
+        overflow: hidden; 
+        position: relative; 
+        cursor: grab; /* Indicates this area can be grabbed for scrolling */
+    }
+
+    .lists-container {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden; 
+        align-items: flex-start; 
+        padding-bottom: 20px; 
+        min-height: 150px; 
+        width: 100%; 
+        height: 100%; 
+    }
+
+    .routine-list {
+        background-color: #EBECF0; 
+        border-radius: 8px; 
+        padding: 10px;
+        margin-right: 10px;
+        width: 300px; 
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 160px); 
+        position: relative; 
+        cursor: grab; /* For list D&D itself */
+    }
+
+    .routine-list.dragging-list-visual { 
+        opacity: 0.7;
+        cursor: grabbing;
+    }
+
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px; 
+        position: relative;
+        cursor: auto; 
+    }
+
+
+    .routine-list h2 {
+        font-size: 16px;
+        margin: 0; 
+        padding: 5px 0; 
+        color: #172b4d;
+        font-weight: 600;
+        flex-grow: 1; 
+        margin-right: 5px; 
+    }
+
+    .list-start-time-display {
+        font-size: 13px;
+        color: #5e6c84;
+        margin: 0 5px; 
+        white-space: nowrap;
+    }
+
+    .edit-list-time-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 3px;
+        font-size: 1em; 
+        color: #5e6c84;
+        border-radius: 8px; 
+    }
+    .edit-list-time-button:hover {
+        color: #172b4d;
+    }
+
+
+    .options-button {
+        background: none;
+        border: none;
+        font-size: 1.5em; 
+        cursor: pointer;
+        padding: 0 5px;
+        line-height: 1; 
+        color: #5e6c84; 
+        margin-left: auto; 
+        border-radius: 8px; 
+    }
+    .options-button:hover {
+        color: #172b4d;
+    }
+
+    .options-menu {
+        position: absolute;
+        top: 100%; 
+        right: 0;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 8px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        z-index: 10;
+        padding: 5px 0;
+        min-width: 150px;
+    }
+    .options-menu button {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        text-align: left;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #172b4d;
+        border-radius: 0; 
+    }
+    .options-menu button:hover {
+        background-color: #f4f5f7;
+    }
+
+    .card-options-menu { 
+       right: 0;
+       top: 25px; 
+    }
+    .list-options-menu {
+        right: 0;
+        top: 25px; 
+    }
+
+
+    .edit-form { 
+        margin-top: 8px;
+        padding: 10px;
+        background-color: #f4f5f7; 
+        border: 1px solid #dfe1e6;
+        border-radius: 8px; 
+        font-size: 13px;
+    }
+    .edit-form label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+        color: #172b4d;
+    }
+    .edit-form input[type="number"],
+    .edit-form input[type="time"],
+    .edit-form input[type="text"] { 
+        width: calc(100% - 22px); 
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px; 
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+    .edit-form button {
+        padding: 6px 12px;
+        font-size: 13px;
+        margin-right: 5px;
+        background-color: #5aac44;
+        color: white;
+        border: none;
+        border-radius: 8px; 
+        cursor: pointer;
+    }
+    .edit-form button:last-of-type { 
+        background-color: #aaa;
+    }
+    .edit-form button:hover {
+        opacity: 0.9;
+    }
+
+    .list-edit-form {
+        margin-bottom: 10px; 
+    }
+
+
+    .list-start-button {
+        background-color: #0079BF;
+        color: white;
+        border: none;
+        padding: 8px 10px;
+        border-radius: 8px; 
+        cursor: pointer;
+        margin-bottom: 10px;
+        font-size: 14px;
+        text-align: center;
+        width: 100%; 
+    }
+
+    .list-start-button:hover {
+        background-color: #026aa7;
+    }
+
+    .cards-container {
+        overflow-y: auto; 
+        overflow-x: hidden;
+        flex-grow: 1; 
+        padding-right: 5px; 
+        min-height: 50px; 
+    }
+
+    .routine-card {
+        background-color: #FFFFFF;
+        border-radius: 8px; 
+        box-shadow: 0 1px 2px rgba(9,30,66,.15), 0 0 1px rgba(9,30,66,.13); 
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        cursor: grab;
+        font-size: 14px;
+        position: relative; 
+        transition: opacity 0.1s ease-out; 
+    }
+
+    .routine-card.dragging { 
+        opacity: 0.5;
+    }
+
+    .routine-card:active { 
+        cursor: grabbing;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px; 
+        position: relative; 
+    }
+    .card-header p strong { 
+         font-weight: 500;
+         margin: 0; 
+         flex-grow: 1; 
+         margin-right: 5px; 
+    }
+
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #5e6c84;
+        margin-top: 4px;
+    }
+
+    .card-time-info {
+        white-space: nowrap;
+    }
+
+    .card-duration-info {
+        white-space: nowrap;
+        margin-left: 10px; 
+    }
+
+
+    .routine-card--active {
+        background-color: #f0fff0; 
+        border-left: 4px solid #5aac44; 
+        padding-left: 6px; 
+    }
+
+    .routine-card .timer-display {
+        font-size: 13px;
+        font-weight: bold;
+        color: #c9302c; 
+        margin-top: 6px;
+        text-align: right;
+    }
+
+    .card-edit-form {
+        margin-top: 5px; 
+        margin-bottom: 5px; 
+    }
+
+
+    .add-routine-form {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #dfe1e6;
+        border-radius: 8px; 
+    }
+
+    .add-routine-form div {
+        margin-bottom: 8px;
+    }
+
+    .add-routine-form label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .add-routine-form input[type="text"],
+    .add-routine-form input[type="time"],
+    .add-routine-form input[type="number"] { 
+        width: calc(100% - 20px);
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px; 
+        font-size: 14px;
+    }
+
+    .add-routine-form button {
+        padding: 8px 15px;
+        background-color: #5aac44;
+        color: white;
+        border: none;
+        border-radius: 8px; 
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    .add-routine-form-button { 
+         border-radius: 8px;
+    }
+
+    .add-routine-form button:hover {
+        background-color: #61bd4f;
+    }
+
+
+    .dragging-placeholder { 
+        background-color: rgba(0,0,0,0.05);
+        border: 1px dashed #b0b0b0;
+        border-radius: 8px; 
+        height: 8px; 
+        margin: 4px 0; 
+        box-sizing: border-box;
+    }
+
+    .list-dragging-placeholder { 
+        background-color: rgba(0, 0, 0, 0.1);
+        border: 2px dashed #999;
+        border-radius: 8px; 
+        margin-right: 10px; 
+        flex-shrink: 0;
+        box-sizing: border-box;
+    }
+
+    .app-footer {
+        text-align: center;
+        padding: 10px 0;
+        font-size: 12px;
+        color: #f0f0f0; 
+        background-color: #0067A3; 
+        border-top: 1px solid #005282;
+    }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script 
+        type="text/babel" 
+        data-presets="react,typescript" 
+    >
+try {
+// --- START OF INLINED index.tsx (FULL APPLICATION) ---
+import React, { useState, DragEvent, FormEvent, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom/client';
+
+// --- Interfaces ---
+interface Routine {
+  id: string;
+  name: string;
+  startTime: string; // "HH:MM:SS"
+  durationSeconds: number;
+  endTime: string;   // "HH:MM:SS"
+}
+
+interface RoutineList {
+  id: string;
+  title: string;
+  routines: Routine[];
+}
+
+interface ActiveRoutineState {
+  listId: string;
+  routineId: string;
+  currentRoutineIndex: number;
+  timeLeftInSeconds: number;
+  routineName: string; 
+}
+
+// --- Helper Functions ---
+const generateId = (): string => \`id-\${Date.now()}-\${Math.random().toString(36).substring(2, 9)}\`;
+
+const parseTimeToDate = (timeStr: string): Date => { 
+  const parts = timeStr.split(':').map(Number);
+  const hours = parts[0] || 0;
+  const minutes = parts[1] || 0;
+  const seconds = parts[2] || 0;
+  const date = new Date();
+  date.setHours(hours, minutes, seconds, 0);
+  return date;
+};
+
+const formatTimeFromDate = (date: Date): string => {
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return \`\${hours}:\${minutes}:\${seconds}\`;
+};
+
+const addSecondsToDate = (date: Date, seconds: number): Date => {
+  return new Date(date.getTime() + seconds * 1000);
+};
+
+const parseDurationToSeconds = (input: string): number | null => {
+  if (!input || input.trim() === '') return null;
+
+  const numberInput = Number(input);
+  if (!isNaN(numberInput) && String(numberInput) === input.trim()) {
+    return Math.max(0, numberInput * 60);
+  }
+
+  const parts = input.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+
+  if (parts.length === 2) { // MM:SS
+    return Math.max(0, parts[0] * 60 + parts[1]);
+  } else if (parts.length === 3) { // HH:MM:SS
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+  return null;
+};
+
+const formatDuration = (totalSeconds: number): string => {
+  if (totalSeconds < 0) totalSeconds = 0;
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  if (h > 0) {
+    return \`\${h.toString().padStart(2, '0')}:\${m.toString().padStart(2, '0')}:\${s.toString().padStart(2, '0')}\`;
+  }
+  if (m > 0) {
+    return \`\${m.toString().padStart(2, '0')}:\${s.toString().padStart(2, '0')}\`;
+  }
+  return \`\${s}s\`;
+};
+
+
+const formatTimeLeft = (totalSeconds: number): string => {
+  if (totalSeconds < 0) totalSeconds = 0;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  if (hours > 0) {
+    return \`\${hours.toString().padStart(2, '0')}:\${minutes.toString().padStart(2, '0')}:\${seconds.toString().padStart(2, '0')}\`;
+  }
+  return \`\${minutes.toString().padStart(2, '0')}:\${seconds.toString().padStart(2, '0')}\`;
+};
+
+// --- State for Drag & Drop ---
+interface DraggedItemInfo {
+  cardId: string;
+  sourceListId: string;
+  originalIndex: number;
+}
+let draggedItemInfo: DraggedItemInfo | null = null;
+
+interface DraggedListInfo {
+  id: string;
+  originalIndex: number;
+}
+
+let germanVoices: SpeechSynthesisVoice[] = [];
+
+const loadVoices = () => {
+    const allVoices = window.speechSynthesis.getVoices();
+    germanVoices = allVoices.filter(voice => voice.lang.startsWith('de'));
+};
+
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+    loadVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+}
+
+const playBeepSound = (callback?: () => void, durationMs = 150, frequency = 440, volume = 0.03) => { // Shortened beep
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) {
+        if (callback) setTimeout(callback, durationMs); 
+        console.warn("AudioContext not supported, cannot play beep.");
+        return;
+    }
+    const audioContext = new AudioContextClass();
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.type = 'sine'; 
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime); // A4 note
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + durationMs / 1000);
+
+    setTimeout(() => {
+        try {
+            oscillator.disconnect();
+            gainNode.disconnect();
+            audioContext.close().catch(e => console.warn("AudioContext close error:", e));
+        } catch(e) {
+            console.warn("Error during audio cleanup:", e);
+        }
+        if (callback) callback();
+    }, durationMs + 50); 
+};
+
+
+const speakText = (text: string) => {
+    if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
+      console.warn("Speech synthesis not available or text is empty. Attempting fallback sound.");
+      playBeepSound(undefined, 300, 300, 0.03); 
+      return;
+    }
+  
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'de-DE';
+    
+    if (germanVoices.length > 0) {
+      const femaleVoice = germanVoices.find(voice => voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('frau'));
+      utterance.voice = femaleVoice || germanVoices[0];
+    } 
+  
+    utterance.pitch = 1;
+    utterance.rate = 1;
+    window.speechSynthesis.cancel(); 
+    window.speechSynthesis.speak(utterance);
+  };
+
+
+// --- Components ---
+const RoutineCardComponent: React.FC<{
+  routine: Routine;
+  listId: string;
+  cardIndex: number;
+  isActive: boolean;
+  timeLeft: number | null;
+  onUpdateRoutineDuration: (listId: string, routineId: string, newDurationSeconds: number) => void;
+  onDeleteRoutine: (listId: string, routineId: string) => void;
+  isSomethingDragging: boolean;
+}> = ({ routine, listId, cardIndex, isActive, timeLeft, onUpdateRoutineDuration, onDeleteRoutine, isSomethingDragging }) => {
+  const [isEditingDuration, setIsEditingDuration] = useState(false);
+  const [editDurationInput, setEditDurationInput] = useState(formatDuration(routine.durationSeconds));
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
+
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        optionsMenuRef.current &&
+        !optionsMenuRef.current.contains(event.target as Node) &&
+        optionsButtonRef.current &&
+        !optionsButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowOptionsMenu(false);
+      }
+    };
+
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOptionsMenu]);
+
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.effectAllowed = 'move';
+    draggedItemInfo = { cardId: routine.id, sourceListId: listId, originalIndex: cardIndex };
+    e.dataTransfer.setData('text/plain', routine.id); 
+    setTimeout(() => {
+      if (cardRef.current) {
+        cardRef.current.style.opacity = '0.5';
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = (e: DragEvent<HTMLDivElement>) => {
+    if (cardRef.current) {
+      cardRef.current.style.opacity = '1';
+    }
+  };
+
+  const handleSaveDuration = () => {
+    const newDurationSec = parseDurationToSeconds(editDurationInput);
+    if (newDurationSec !== null && newDurationSec >= 0) {
+      onUpdateRoutineDuration(listId, routine.id, newDurationSec);
+      setIsEditingDuration(false);
+      setShowOptionsMenu(false);
+    } else {
+      alert("Ungültige Dauer. Bitte Zahl für Minuten (z.B. 45) oder im Format Std:Min:Sek (z.B. 0:25:00) eingeben.");
+    }
+  };
+  
+  const toggleOptionsMenu = () => {
+    setShowOptionsMenu(!showOptionsMenu);
+    if(isEditingDuration && showOptionsMenu) setIsEditingDuration(false); 
+  };
+
+  const handleEditDurationClick = () => {
+    setEditDurationInput(formatDuration(routine.durationSeconds)); 
+    setIsEditingDuration(true);
+    setShowOptionsMenu(false); 
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      id={routine.id}
+      className={\`routine-card \${isActive ? 'routine-card--active' : ''} \${isSomethingDragging && draggedItemInfo?.cardId === routine.id ? 'dragging' : ''}\`}
+      draggable="true"
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      data-card-id={routine.id} 
+    >
+      <div className="card-header">
+        <p><strong>{routine.name}</strong></p>
+        <button 
+          ref={optionsButtonRef}
+          onClick={toggleOptionsMenu}
+          className="options-button" 
+          aria-label={\`Optionen für Routine \${routine.name}\`}
+          aria-expanded={showOptionsMenu}
+          aria-controls={\`options-menu-\${routine.id}\`}
+        >
+          ...
+        </button>
+        {showOptionsMenu && (
+          <div ref={optionsMenuRef} id={\`options-menu-\${routine.id}\`} className="options-menu card-options-menu" role="menu">
+            <button role="menuitem" onClick={handleEditDurationClick}>Dauer bearbeiten</button>
+            <button role="menuitem" onClick={() => { onDeleteRoutine(listId, routine.id); setShowOptionsMenu(false); }}>Löschen</button>
+          </div>
+        )}
+      </div>
+      {isEditingDuration && (
+        <div className="edit-form card-edit-form">
+          <label htmlFor={\`editDuration-\${routine.id}\`}>Dauer ändern:</label>
+          <input 
+            type="text" 
+            id={\`editDuration-\${routine.id}\`} 
+            value={editDurationInput} 
+            onChange={e => setEditDurationInput(e.target.value)} 
+            placeholder="z.B. 45 (für Min.) oder 0:25:00 (Std:Min:Sek)"
+          />
+          <button onClick={handleSaveDuration}>Speichern</button>
+          <button onClick={() => { setIsEditingDuration(false); setEditDurationInput(formatDuration(routine.durationSeconds));}} style={{backgroundColor: '#aaa'}}>Abbrechen</button>
+        </div>
+      )}
+      <div className="card-footer">
+        <span className="card-time-info">{routine.startTime} - {routine.endTime}</span>
+        <span className="card-duration-info">Dauer: {formatDuration(routine.durationSeconds)}</span>
+      </div>
+      {isActive && timeLeft !== null && (
+        <p className="timer-display" aria-live="polite">Verbleibend: {formatTimeLeft(timeLeft)}</p>
+      )}
+    </div>
+  );
+};
+
+const RoutineListComponent: React.FC<{
+  list: RoutineList;
+  listIndex: number;
+  isBeingDragged: boolean;
+  onAddRoutine: (listId: string, name: string, durationSeconds: number, startTime?: string) => void;
+  onMoveRoutine: (cardId: string, sourceListId: string, targetListId: string, targetIndex: number) => void;
+  activeRoutineState: ActiveRoutineState | null;
+  onToggleStartStopList: (listId: string) => void;
+  onUpdateListStartTime: (listId: string, newStartTime: string) => void;
+  onUpdateRoutineDurationInList: (listId: string, routineId: string, newDurationSeconds: number) => void;
+  onDeleteRoutineInList: (listId: string, routineId: string) => void;
+  onDeleteAllRoutinesInList: (listId: string) => void;
+  onDragStartList: (listId: string, index: number) => void;
+  onDragEndList: () => void;
+  isSomethingDragging: boolean;
+}> = ({ 
+  list, listIndex, isBeingDragged, onAddRoutine, onMoveRoutine, activeRoutineState, 
+  onToggleStartStopList, onUpdateListStartTime, onUpdateRoutineDurationInList, 
+  onDeleteRoutineInList, onDeleteAllRoutinesInList, onDragStartList, onDragEndList,
+  isSomethingDragging
+}) => {
+  const [newRoutineName, setNewRoutineName] = useState('');
+  const [newRoutineDurationInput, setNewRoutineDurationInput] = useState('30'); 
+  const [newRoutineStartTime, setNewRoutineStartTime] = useState('08:00');
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [isEditingListStartTime, setIsEditingListStartTime] = useState(false);
+  const initialStartTimeForEdit = list.routines.length > 0 ? list.routines[0].startTime.substring(0,5) : '08:00';
+  const [editListStartTime, setEditListStartTime] = useState(initialStartTimeForEdit);
+  
+  const [showListOptionsMenu, setShowListOptionsMenu] = useState(false);
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const listOptionsMenuRef = useRef<HTMLDivElement>(null);
+  const listOptionsButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const newInitialStartTime = list.routines.length > 0 ? list.routines[0].startTime.substring(0,5) : '08:00';
+    setEditListStartTime(newInitialStartTime);
+  }, [list.routines]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        listOptionsMenuRef.current &&
+        !listOptionsMenuRef.current.contains(event.target as Node) &&
+        listOptionsButtonRef.current &&
+        !listOptionsButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowListOptionsMenu(false);
+      }
+    };
+
+    if (showListOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showListOptionsMenu]);
+
+
+  const handleSubmitNewRoutine = (e: FormEvent) => {
+    e.preventDefault();
+    const durationSec = parseDurationToSeconds(newRoutineDurationInput);
+    if (!newRoutineName.trim() || durationSec === null || durationSec <= 0) {
+      alert('Bitte Namen und gültige Dauer angeben. Für Dauer: Zahl für Minuten (z.B. 45) oder Std:Min:Sek (z.B. 0:25:00).');
+      return;
+    }
+    const isFirstRoutine = list.routines.length === 0;
+    onAddRoutine(list.id, newRoutineName, durationSec, isFirstRoutine ? newRoutineStartTime : undefined);
+    setNewRoutineName('');
+    setNewRoutineDurationInput('30');
+    setShowAddForm(false);
+  };
+
+  const handleDragOverCardContainer = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!draggedItemInfo || (draggedItemInfo.sourceListId === list.id && list.routines.length <=1 && list.routines[0]?.id === draggedItemInfo.cardId)) {
+        const existingPlaceholder = cardsContainerRef.current?.querySelector('.dragging-placeholder');
+        if (existingPlaceholder) existingPlaceholder.remove();
+        return;
+    }
+
+    const cardsContainer = cardsContainerRef.current;
+    if (!cardsContainer) return;
+
+    let placeholder = cardsContainer.querySelector('.dragging-placeholder') as HTMLElement | null;
+    if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.className = 'dragging-placeholder';
+    }
+    
+    const mouseY = e.clientY;
+    const cards = Array.from(cardsContainer.children).filter(child => child.classList.contains('routine-card') && child.id !== draggedItemInfo?.cardId);
+    
+    let insertBeforeElement: Element | null = null;
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (mouseY < rect.top + rect.height / 2) {
+            insertBeforeElement = card;
+            break;
+        }
+    }
+
+    if (insertBeforeElement) {
+        cardsContainer.insertBefore(placeholder, insertBeforeElement);
+    } else {
+        cardsContainer.appendChild(placeholder);
+    }
+  };
+
+  const handleDragLeaveCardContainer = (e: DragEvent<HTMLDivElement>) => {
+    if (cardsContainerRef.current && !cardsContainerRef.current.contains(e.relatedTarget as Node)) {
+      const placeholder = cardsContainerRef.current.querySelector('.dragging-placeholder');
+      if (placeholder) placeholder.remove();
+    }
+  };
+
+  const handleDropOnCardContainer = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const cardsContainer = cardsContainerRef.current;
+    const placeholder = cardsContainer?.querySelector('.dragging-placeholder');
+    
+    let targetIndex = list.routines.length;
+
+    if (placeholder && cardsContainer) {
+        const childrenAndPlaceholder = Array.from(cardsContainer.children)
+            .filter(child => child.classList.contains('routine-card') || child === placeholder);
+        const pIndex = childrenAndPlaceholder.indexOf(placeholder);
+        if (pIndex !== -1) {
+            targetIndex = pIndex;
+        }
+    }
+     if (placeholder) placeholder.remove();
+
+
+    if (draggedItemInfo) {
+      onMoveRoutine(draggedItemInfo.cardId, draggedItemInfo.sourceListId, list.id, targetIndex);
+    }
+  };
+
+  const handleSaveListStartTime = () => {
+    if (list.routines.length === 0) {
+        alert("Die Liste enthält keine Routinen. Fügen Sie zuerst eine Routine hinzu, um die Startzeit zu ändern.");
+        setIsEditingListStartTime(false);
+        return;
+    }
+    if (!/^\\d{2}:\\d{2}$/.test(editListStartTime)) { 
+        alert("Ungültiges Zeitformat. Bitte HH:MM verwenden.");
+        return;
+    }
+    onUpdateListStartTime(list.id, editListStartTime + ":00"); 
+    setIsEditingListStartTime(false);
+  };
+  
+  const firstRoutineStartTimeDisplay = list.routines.length > 0 ? list.routines[0].startTime : "--:--:--";
+  const isCurrentListActive = activeRoutineState?.listId === list.id;
+
+  return (
+    <div 
+      className={\`routine-list \${isBeingDragged ? 'dragging-list-visual' : ''}\`}
+      draggable="true"
+      onDragStart={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.routine-card') || 
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('.options-menu') ||
+            target.classList.contains('cards-container')) { 
+          return; 
+        }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/x-list-id', list.id); 
+        onDragStartList(list.id, listIndex);
+      }}
+      onDragEnd={(e) => {
+         const target = e.target as HTMLElement;
+         if (target.closest('.routine-card') ||
+             target.closest('button') ||
+             target.closest('input') ||
+             target.closest('.options-menu') ||
+             target.classList.contains('cards-container')) {
+          return;
+        }
+        onDragEndList();
+      }}
+      data-list-id={list.id} 
+    >
+      <div className="list-header">
+        <h2>{list.title}</h2>
+        <span className="list-start-time-display" aria-label="Startzeit der ersten Routine">{firstRoutineStartTimeDisplay}</span>
+        <button 
+          onClick={() => {
+            setIsEditingListStartTime(!isEditingListStartTime);
+            setEditListStartTime(list.routines.length > 0 ? list.routines[0].startTime.substring(0,5) : '08:00');
+          }}
+          className="edit-list-time-button"
+          aria-label="Startzeit der Liste bearbeiten"
+        >
+          ✏️
+        </button>
+        <button 
+          ref={listOptionsButtonRef}
+          onClick={() => setShowListOptionsMenu(!showListOptionsMenu)} 
+          className="options-button" 
+          aria-label={\`Optionen für Liste \${list.title}\`}
+          aria-expanded={showListOptionsMenu}
+          aria-controls={\`list-options-menu-\${list.id}\`}
+        >
+          ...
+        </button>
+        {showListOptionsMenu && (
+          <div ref={listOptionsMenuRef} id={\`list-options-menu-\${list.id}\`} className="options-menu list-options-menu" role="menu">
+            <button role="menuitem" onClick={() => { 
+              if (confirm(\`Möchten Sie wirklich alle Karten in der Liste "\${list.title}" löschen?\`)) {
+                onDeleteAllRoutinesInList(list.id);
+              }
+              setShowListOptionsMenu(false); 
+            }}>
+              Alle Karten löschen
+            </button>
+          </div>
+        )}
+      </div>
+      {isEditingListStartTime && (
+        <div className="edit-form list-edit-form">
+          <label htmlFor={\`editStartTime-\${list.id}\`}>Neue Startzeit (erste Routine HH:MM):</label>
+          <input 
+            type="time" 
+            id={\`editStartTime-\${list.id}\`} 
+            value={editListStartTime} 
+            onChange={e => setEditListStartTime(e.target.value)} 
+            />
+          <button onClick={handleSaveListStartTime}>Speichern</button>
+          <button onClick={() => setIsEditingListStartTime(false)} style={{backgroundColor: '#aaa'}}>Abbrechen</button>
+        </div>
+      )}
+      <button 
+        className="list-start-button" 
+        onClick={() => onToggleStartStopList(list.id)}
+        aria-label={isCurrentListActive ? \`Routinen stoppen für \${list.title}\` : \`Routinen starten für \${list.title}\`}
+      >
+        {isCurrentListActive ? 'Routinen stoppen' : 'Routinen starten'}
+      </button>
+      <div 
+        className="cards-container" 
+        ref={cardsContainerRef}
+        onDragOver={handleDragOverCardContainer} 
+        onDrop={handleDropOnCardContainer} 
+        onDragLeave={handleDragLeaveCardContainer}
+      >
+        {list.routines.map((routine, index) => (
+          <RoutineCardComponent
+            key={routine.id}
+            routine={routine}
+            listId={list.id}
+            cardIndex={index}
+            isActive={isCurrentListActive && activeRoutineState?.currentRoutineIndex === index}
+            timeLeft={isCurrentListActive && activeRoutineState?.currentRoutineIndex === index ? activeRoutineState.timeLeftInSeconds : null}
+            onUpdateRoutineDuration={onUpdateRoutineDurationInList}
+            onDeleteRoutine={onDeleteRoutineInList}
+            isSomethingDragging={isSomethingDragging}
+          />
+        ))}
+      </div>
+      {showAddForm ? (
+        <form onSubmit={handleSubmitNewRoutine} className="add-routine-form">
+          <div>
+            <label htmlFor={\`routineName-\${list.id}\`}>Name der Routine:</label>
+            <input type="text" id={\`routineName-\${list.id}\`} value={newRoutineName} onChange={(e) => setNewRoutineName(e.target.value)} required />
+          </div>
+          {list.routines.length === 0 && (
+            <div>
+              <label htmlFor={\`routineStartTime-\${list.id}\`}>Startzeit (HH:MM):</label>
+              <input type="time" id={\`routineStartTime-\${list.id}\`} value={newRoutineStartTime} onChange={(e) => setNewRoutineStartTime(e.target.value)} required />
+            </div>
+          )}
+          <div>
+            <label htmlFor={\`routineDuration-\${list.id}\`}>Dauer:</label>
+            <input 
+              type="text" 
+              id={\`routineDuration-\${list.id}\`} 
+              value={newRoutineDurationInput} 
+              onChange={(e) => setNewRoutineDurationInput(e.target.value)} 
+              placeholder="z.B. 45 (für Min.) oder 0:25:00 (Std:Min:Sek)" 
+              required 
+            />
+          </div>
+          <button type="submit">Routine hinzufügen</button>
+          <button type="button" onClick={() => setShowAddForm(false)} style={{marginLeft: '10px', backgroundColor: '#aaa'}}>Abbrechen</button>
+        </form>
+      ) : (
+        <button onClick={() => setShowAddForm(true)} className="add-routine-form-button" style={{marginTop: 'auto', alignSelf: 'flex-start', padding: '8px 10px', background: 'transparent', border: 'none', color: '#5e6c84', cursor: 'pointer', textAlign: 'left', width: '100%'}}>
+          + Routine hinzufügen...
+        </button>
+      )}
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  const [lists, setLists] = useState<RoutineList[]>([]);
+  const [newListName, setNewListName] = useState('');
+  const [activeRoutineState, setActiveRoutineState] = useState<ActiveRoutineState | null>(null);
+  const timerIdRef = useRef<number | null>(null); // CORRECTED for browser
+  const [draggedListInfo, setDraggedListInfo] = useState<DraggedListInfo | null>(null);
+  
+  const listsContainerRef = useRef<HTMLDivElement>(null); 
+  const listsOuterContainerRef = useRef<HTMLDivElement>(null); 
+  
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+
+  const isBackgroundDraggingRef = useRef(false);
+  const backgroundDragStartXRef = useRef(0);
+  const backgroundScrollLeftStartRef = useRef(0);
+
+
+  useEffect(() => {
+    if (activeRoutineState) {
+      timerIdRef.current = window.setInterval(() => { // CORRECTED: window. prefix
+        setActiveRoutineState(prev => {
+          if (!prev) { 
+            if (timerIdRef.current) window.clearInterval(timerIdRef.current); // CORRECTED: window. prefix
+            return null;
+          }
+          if (prev.timeLeftInSeconds <= 1) { 
+            if (timerIdRef.current) window.clearInterval(timerIdRef.current); // CORRECTED: window. prefix
+            
+            playBeepSound(() => { 
+                speakText(\`\${prev.routineName} ist fertig.\`);
+            });
+
+            const currentList = lists.find(l => l.id === prev.listId);
+            if (!currentList) return null; 
+
+            const nextRoutineIndex = prev.currentRoutineIndex + 1;
+            if (nextRoutineIndex < currentList.routines.length) {
+              const nextRoutine = currentList.routines[nextRoutineIndex];
+              return {
+                listId: prev.listId,
+                routineId: nextRoutine.id,
+                currentRoutineIndex: nextRoutineIndex,
+                timeLeftInSeconds: nextRoutine.durationSeconds,
+                routineName: nextRoutine.name,
+              };
+            } else {
+              speakText(\`Alle Routinen in "\${currentList.title}" abgeschlossen!\`);
+              return null; 
+            }
+          }
+          return { ...prev, timeLeftInSeconds: prev.timeLeftInSeconds - 1 };
+        });
+      }, 1000);
+    } else {
+      if (timerIdRef.current) {
+        window.clearInterval(timerIdRef.current); // CORRECTED: window. prefix
+        timerIdRef.current = null;
+      }
+    }
+    return () => { 
+      if (timerIdRef.current) {
+        window.clearInterval(timerIdRef.current); // CORRECTED: window. prefix
+      }
+    };
+  }, [activeRoutineState, lists]);
+
+  const handleAddList = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newListName.trim()) return;
+    setLists([...lists, { id: generateId(), title: newListName, routines: [] }]);
+    setNewListName('');
+  };
+
+  const recalculateTimesInList = (list: RoutineList, startIndex: number = 0): RoutineList => {
+    const updatedRoutines = [...list.routines];
+    if (updatedRoutines.length === 0) return { ...list, routines: [] }; 
+
+    for (let i = startIndex; i < updatedRoutines.length; i++) {
+        let currentStartTimeDate: Date;
+        if (i === 0) {
+            currentStartTimeDate = parseTimeToDate(updatedRoutines[i].startTime);
+        } else {
+            if (!updatedRoutines[i-1] || !updatedRoutines[i-1].endTime) { 
+                console.error("Error recalculating times: previous routine's end time missing.", updatedRoutines[i-1]);
+                currentStartTimeDate = new Date(); 
+            } else {
+                currentStartTimeDate = parseTimeToDate(updatedRoutines[i-1].endTime);
+            }
+        }
+        updatedRoutines[i].startTime = formatTimeFromDate(currentStartTimeDate);
+        const endTimeDate = addSecondsToDate(currentStartTimeDate, updatedRoutines[i].durationSeconds);
+        updatedRoutines[i].endTime = formatTimeFromDate(endTimeDate);
+    }
+    return { ...list, routines: updatedRoutines };
+  };
+  
+  const handleAddRoutineToList = (listId: string, name: string, durationSeconds: number, startTimeStr?: string) => { 
+    setLists(prevLists =>
+      prevLists.map(list => {
+        if (list.id === listId) {
+          let newRoutineStartTimeStr: string; 
+          if (startTimeStr) { 
+            newRoutineStartTimeStr = startTimeStr + ":00";
+          } else if (list.routines.length > 0) {
+            newRoutineStartTimeStr = list.routines[list.routines.length - 1].endTime;
+          } else {
+            newRoutineStartTimeStr = '08:00:00'; 
+          }
+  
+          const newRoutine: Routine = {
+            id: generateId(),
+            name,
+            startTime: newRoutineStartTimeStr,
+            durationSeconds,
+            endTime: formatTimeFromDate(addSecondsToDate(parseTimeToDate(newRoutineStartTimeStr), durationSeconds)),
+          };
+          
+          const updatedList = { ...list, routines: [...list.routines, newRoutine] };
+          return updatedList; 
+        }
+        return list;
+      })
+    );
+  };
+
+  const handleUpdateRoutineDurationInList = (listId: string, routineId: string, newDurationSeconds: number) => {
+    setLists(prevLists => 
+        prevLists.map(list => {
+            if (list.id === listId) {
+                const routineIndex = list.routines.findIndex(r => r.id === routineId);
+                if (routineIndex === -1) return list;
+
+                const updatedRoutines = list.routines.map((routine, index) => {
+                    if (index === routineIndex) {
+                        return { ...routine, durationSeconds: newDurationSeconds };
+                    }
+                    return routine;
+                });
+                const recalculatedList = recalculateTimesInList({ ...list, routines: updatedRoutines }, routineIndex);
+                
+                if (activeRoutineState?.listId === listId) {
+                    setActiveRoutineState(null);
+                    playBeepSound(() => speakText("Timer gestoppt wegen Zeitänderungen. Bitte Routinen neu starten."));
+                }
+                return recalculatedList;
+            }
+            return list;
+        })
+    );
+  };
+
+  const handleUpdateListStartTime = (listId: string, newStartTimeStrWithSeconds: string) => { 
+    setLists(prevLists =>
+        prevLists.map(list => {
+            if (list.id === listId) {
+                if (list.routines.length === 0) return list;
+
+                const updatedRoutines = list.routines.map((routine, index) => {
+                    if (index === 0) {
+                        return { ...routine, startTime: newStartTimeStrWithSeconds };
+                    }
+                    return routine;
+                });
+                const recalculatedList = recalculateTimesInList({ ...list, routines: updatedRoutines }, 0);
+                
+                if (activeRoutineState?.listId === listId) {
+                    setActiveRoutineState(null);
+                    playBeepSound(() => speakText("Timer gestoppt wegen Zeitänderungen. Bitte Routinen neu starten."));
+                }
+                return recalculatedList;
+            }
+            return list;
+        })
+    );
+  };
+  
+  const handleDeleteRoutine = (listId: string, routineId: string) => {
+    setLists(prevLists => 
+        prevLists.map(list => {
+            if (list.id === listId) {
+                const updatedRoutines = list.routines.filter(r => r.id !== routineId);
+                const routineIndex = list.routines.findIndex(r => r.id === routineId);
+                const recalculatedList = recalculateTimesInList({ ...list, routines: updatedRoutines }, Math.max(0, routineIndex -1));
+
+                if (activeRoutineState?.listId === listId) {
+                    if (updatedRoutines.length === 0 || activeRoutineState.routineId === routineId) {
+                        setActiveRoutineState(null);
+                        playBeepSound(() => speakText("Timer gestoppt, da die aktive oder einzige Routine gelöscht wurde."));
+                    } else {
+                        const activeIndexStillValid = activeRoutineState.currentRoutineIndex < updatedRoutines.length;
+                        if (!activeIndexStillValid || updatedRoutines[activeRoutineState.currentRoutineIndex]?.id !== activeRoutineState.routineId) {
+                             setActiveRoutineState(null);
+                             playBeepSound(() => speakText("Timer gestoppt aufgrund von Änderungen. Bitte neu starten."));
+                        } else {
+                             setActiveRoutineState(prev => prev ? {...prev, routineName: updatedRoutines[prev.currentRoutineIndex].name} : null);
+                        }
+                    }
+                }
+                return recalculatedList;
+            }
+            return list;
+        })
+    );
+  };
+
+  const handleDeleteAllRoutinesInList = (listId: string) => {
+    setLists(prevLists =>
+        prevLists.map(list => {
+            if (list.id === listId) {
+                if (activeRoutineState?.listId === listId) {
+                    setActiveRoutineState(null);
+                    playBeepSound(() => speakText(\`Timer gestoppt, da alle Routinen aus der aktiven Liste "\${list.title}" gelöscht wurden.\`));
+                }
+                return { ...list, routines: [] };
+            }
+            return list;
+        })
+    );
+  };
+
+  const handleMoveRoutine = (cardId: string, sourceListId: string, targetListId: string, targetIndex: number) => {
+    setLists(prevLists => {
+        let cardToMove: Routine | undefined;
+        let newLists = JSON.parse(JSON.stringify(prevLists)) as RoutineList[]; 
+        
+        const sourceListIdx = newLists.findIndex(l => l.id === sourceListId);
+        if (sourceListIdx === -1) return prevLists;
+        
+        const cardIndexInSource = newLists[sourceListIdx].routines.findIndex(r => r.id === cardId);
+        if (cardIndexInSource > -1) {
+            [cardToMove] = newLists[sourceListIdx].routines.splice(cardIndexInSource, 1);
+        }
+
+        if (!cardToMove) return prevLists;
+
+        const targetListIdx = newLists.findIndex(l => l.id === targetListId);
+        if (targetListIdx === -1) return prevLists;
+
+        newLists[targetListIdx].routines.splice(targetIndex, 0, cardToMove);
+
+        if (newLists[sourceListIdx].routines.length > 0) {
+            newLists[sourceListIdx] = recalculateTimesInList(newLists[sourceListIdx], 0);
+        }
+        newLists[targetListIdx] = recalculateTimesInList(newLists[targetListIdx], 0);
+
+
+        if (activeRoutineState && (activeRoutineState.listId === sourceListId || activeRoutineState.listId === targetListId)) {
+            setActiveRoutineState(null); 
+            playBeepSound(() => speakText('Timer gestoppt durch Verschieben von Routinen.'));
+        }
+        draggedItemInfo = null; 
+        return newLists;
+    });
+  };
+
+  const handleToggleStartStopList = (listId: string) => {
+    if (timerIdRef.current) {
+      window.clearInterval(timerIdRef.current); // CORRECTED: window. prefix
+      timerIdRef.current = null;
+    }
+  
+    if (activeRoutineState?.listId === listId) {
+      setActiveRoutineState(null); 
+    } else {
+      const targetList = lists.find(l => l.id === listId);
+      if (targetList && targetList.routines.length > 0) {
+        const firstRoutine = targetList.routines[0];
+        setActiveRoutineState({
+          listId: listId,
+          routineId: firstRoutine.id,
+          currentRoutineIndex: 0,
+          timeLeftInSeconds: firstRoutine.durationSeconds, 
+          routineName: firstRoutine.name,
+        });
+      } else {
+        setActiveRoutineState(null);
+        if (targetList && targetList.routines.length === 0) {
+          playBeepSound(() => speakText(\`Liste "\${targetList.title}" hat keine Routinen zum Starten.\`));
+        }
+      }
+    }
+  };
+
+  const handleDragStartList = (listId: string, index: number) => {
+    setDraggedListInfo({ id: listId, originalIndex: index });
+    setTimeout(() => { 
+      const listElement = document.querySelector(\`.routine-list[data-list-id="\${listId}"]\`);
+      if (listElement) (listElement as HTMLElement).classList.add('dragging-list-visual');
+    },0);
+  };
+
+  const handleDragEndListGlobal = () => { 
+    if (draggedListInfo) {
+       const listElement = document.querySelector(\`.routine-list[data-list-id="\${draggedListInfo.id}"]\`);
+       if (listElement) (listElement as HTMLElement).classList.remove('dragging-list-visual');
+    }
+    setDraggedListInfo(null);
+    draggedItemInfo = null; 
+    const placeholder = listsContainerRef.current?.querySelector('.list-dragging-placeholder');
+    if (placeholder) placeholder.remove();
+  };
+  
+  const handleDragOverListsContainer = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!draggedListInfo || !listsContainerRef.current) return;
+    e.dataTransfer.dropEffect = 'move';
+
+    const container = listsContainerRef.current;
+    let placeholder = container.querySelector('.list-dragging-placeholder') as HTMLElement | null;
+    if (!placeholder) {
+        placeholder = document.createElement('div') as HTMLDivElement;
+        placeholder.className = 'list-dragging-placeholder';
+        const firstListElement = container.querySelector('.routine-list') as HTMLElement | null;
+        if (firstListElement) {
+            const listStyle = getComputedStyle(firstListElement);
+            placeholder.style.width = listStyle.width; 
+        } else {
+             placeholder.style.width = '300px'; 
+        }
+        placeholder.style.height = '60px'; 
+    }
+
+    const listElements = Array.from(container.children).filter(
+        child => child.classList.contains('routine-list') && (child as HTMLElement).dataset.listId !== draggedListInfo.id
+    );
+
+    let insertBeforeElement: Element | null = null;
+    for (const listEl of listElements) {
+        const rect = listEl.getBoundingClientRect();
+        if (e.clientX < rect.left + rect.width / 2) {
+            insertBeforeElement = listEl;
+            break;
+        }
+    }
+
+    if (placeholder) { 
+        if (insertBeforeElement) {
+            container.insertBefore(placeholder, insertBeforeElement);
+        } else {
+            container.appendChild(placeholder);
+        }
+    }
+  };
+
+  const handleDropListInContainer = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const placeholder = listsContainerRef.current?.querySelector('.list-dragging-placeholder');
+    if (!draggedListInfo || !listsContainerRef.current || !placeholder) {
+      handleDragEndListGlobal(); 
+      return;
+    }
+
+    const childrenOfContainer = Array.from(listsContainerRef.current.children);
+    let targetIndex = childrenOfContainer.indexOf(placeholder);
+
+    if (targetIndex === -1) targetIndex = lists.length -1; 
+    
+    if (draggedListInfo.originalIndex !== targetIndex) {
+        handleMoveList(draggedListInfo.originalIndex, targetIndex);
+    }
+    handleDragEndListGlobal(); 
+  };
+
+  const handleMoveList = (sourceIndex: number, targetIndexInContainer: number) => {
+    setLists(prevLists => {
+        const newLists = [...prevLists];
+        const [movedList] = newLists.splice(sourceIndex, 1);
+        if (movedList) {
+          const actualTargetIndex = sourceIndex < targetIndexInContainer ? targetIndexInContainer - 1 : targetIndexInContainer;
+          newLists.splice(actualTargetIndex, 0, movedList);
+        }
+        return newLists;
+    });
+  };
+  
+  const handleDragLeaveListsContainer = (e: DragEvent<HTMLDivElement>) => {
+    if (listsContainerRef.current && !listsContainerRef.current.contains(e.relatedTarget as Node)) {
+        const placeholder = listsContainerRef.current.querySelector('.list-dragging-placeholder');
+        if (placeholder) placeholder.remove();
+    }
+  };
+
+  const changeZoom = (delta: number) => {
+    setZoomLevel(prev => {
+        const newZoom = parseFloat((prev + delta).toFixed(2));
+        return Math.max(0.5, Math.min(1.5, newZoom)); 
+    });
+  };
+
+  const handleMouseDownToScrollArea = (event: React.MouseEvent<HTMLDivElement>) => {
+    const targetElement = event.target as HTMLElement;
+    const innerScroller = listsContainerRef.current;
+    const outerContainer = listsOuterContainerRef.current;
+
+    if (
+      targetElement.closest('.routine-list') ||
+      targetElement.closest('button') || 
+      targetElement.closest('input') ||
+      targetElement.closest('.options-menu') ||
+      targetElement.closest('.zoom-controls') 
+    ) {
+      return; 
+    }
+
+    let canInitiateDrag = false;
+
+    if (targetElement === outerContainer && outerContainer) {
+        canInitiateDrag = true;
+    } else if (targetElement === innerScroller && innerScroller) {
+        const rect = innerScroller.getBoundingClientRect();
+        const scrollbarHeightApproximation = 17; 
+        if (event.clientY < rect.bottom && event.clientY >= rect.bottom - (scrollbarHeightApproximation * zoomLevel) ) {
+            canInitiateDrag = false; 
+        } else {
+            canInitiateDrag = true; 
+        }
+    }
+
+    if (!canInitiateDrag || !innerScroller) {
+        return;
+    }
+
+    event.preventDefault(); 
+    isBackgroundDraggingRef.current = true;
+    backgroundDragStartXRef.current = event.pageX;
+    backgroundScrollLeftStartRef.current = innerScroller.scrollLeft;
+
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mousemove', handleMouseMoveDocument);
+    document.addEventListener('mouseup', handleMouseUpDocument);
+  };
+
+  const handleMouseMoveDocument = (event: MouseEvent) => {
+    if (!isBackgroundDraggingRef.current || !listsContainerRef.current) return;
+    event.preventDefault(); 
+    const dx = event.pageX - backgroundDragStartXRef.current;
+    listsContainerRef.current.scrollLeft = backgroundScrollLeftStartRef.current - dx;
+  };
+
+  const handleMouseUpDocument = () => {
+    if (!isBackgroundDraggingRef.current) return;
+    isBackgroundDraggingRef.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.removeEventListener('mousemove', handleMouseMoveDocument);
+    document.removeEventListener('mouseup', handleMouseUpDocument);
+  };
+
+
+  return (
+    <div className="app-container" onDragEnd={handleDragEndListGlobal} >
+      <header className="app-header">
+        <h1>Routinen Planer</h1>
+        <div className="zoom-controls">
+            <button onClick={() => changeZoom(-0.1)} aria-label="Zoom Out">-</button>
+            <button onClick={() => setZoomLevel(1.0)} aria-label="Reset Zoom">Reset</button>
+            <button onClick={() => changeZoom(0.1)} aria-label="Zoom In">+</button>
+            <span className="zoom-level-display">{(zoomLevel * 100).toFixed(0)}%</span>
+        </div>
+      </header>
+      <main>
+        <form onSubmit={handleAddList} className="add-list-form">
+          <input type="text" value={newListName} onChange={(e) => setNewListName(e.target.value)} placeholder="Neue Listenüberschrift..." aria-label="Neue Listenüberschrift" />
+          <button type="submit">Liste hinzufügen</button>
+        </form>
+        <div 
+          className="lists-outer-container"
+          ref={listsOuterContainerRef}
+          onMouseDown={handleMouseDownToScrollArea}
+        >
+          <div
+            className="lists-container"
+            ref={listsContainerRef}
+            onDragOver={handleDragOverListsContainer}
+            onDrop={handleDropListInContainer}
+            onDragLeave={handleDragLeaveListsContainer}
+            style={{ transform: \`scale(\${zoomLevel})\`, transformOrigin: 'top left' }}
+          >
+            {lists.map((list, index) => (
+              <RoutineListComponent
+                key={list.id}
+                list={list}
+                listIndex={index}
+                isBeingDragged={draggedListInfo?.id === list.id}
+                onAddRoutine={handleAddRoutineToList}
+                onMoveRoutine={handleMoveRoutine}
+                activeRoutineState={activeRoutineState}
+                onToggleStartStopList={handleToggleStartStopList}
+                onUpdateListStartTime={handleUpdateListStartTime}
+                onUpdateRoutineDurationInList={handleUpdateRoutineDurationInList}
+                onDeleteRoutineInList={handleDeleteRoutine}
+                onDeleteAllRoutinesInList={handleDeleteAllRoutinesInList}
+                onDragStartList={handleDragStartList}
+                onDragEndList={handleDragEndListGlobal} 
+                isSomethingDragging={!!draggedItemInfo || !!draggedListInfo}
+              />
+            ))}
+          </div>
+        </div>
+      </main>
+      <footer className="app-footer">
+        <p>&copy; {new Date().getFullYear()} Routinen Planer App</p>
+      </footer>
+    </div>
+  );
+};
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    // REMOVED React.StrictMode for this context
+    root.render(<App />); 
+    console.log("Full React app render initiated.");
+} else {
+    console.error("Root element (#root) not found in HTML for full app.");
+    document.body.innerHTML = '<p style="color:red;">Root element (#root) not found in HTML.</p>';
+}
+
+// --- END OF INLINED index.tsx (FULL APPLICATION) ---
+} catch (e) {
+  alert('Ein Fehler ist aufgetreten! Details im Catch-Block unten und in der Konsole.');
+  console.error("Fehler im Catch-Block:", e);
+  const rootDiv = document.getElementById('root');
+  if (rootDiv) {
+    let errorMessage = '<h1>Script Error</h1><p>An error occurred. Check console.</p>';
+    if (e instanceof Error) {
+        errorMessage += '<h3>Error Details (Catch Block):</h3><pre style="white-space: pre-wrap; word-wrap: break-word; color: red; background: #fff0f0; padding: 10px; border: 1px solid red;">' + 
+                        (e.stack ? e.stack.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : e.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")) + 
+                        '</pre>';
+    } else {
+        errorMessage += '<h3>Caught non-Error object:</h3><pre style="white-space: pre-wrap; word-wrap: break-word; color: red; background: #fff0f0; padding: 10px; border: 1px solid red;">' + 
+                        String(e).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + 
+                        '</pre>';
+    }
+    rootDiv.innerHTML = '<div style="color: red; padding: 20px; background-color: white; border: 2px solid red; font-family: sans-serif;">' + errorMessage + '</div>';
+  }
+}
+    </script>
+</body>
+</html>
+
+```

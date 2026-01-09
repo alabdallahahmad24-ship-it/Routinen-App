@@ -1,0 +1,5 @@
+{
+  "name": "Routinenplaner",
+  "description": "Ein Trello-ähnlicher Routinenplaner zum Verwalten täglicher Aufgaben mit Zeitangaben.",
+  "requestFramePermissions": []
+}

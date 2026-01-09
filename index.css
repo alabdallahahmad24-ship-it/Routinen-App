@@ -1,0 +1,445 @@
+
+
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #0079BF; /* Trello blue */
+    color: #172b4d; /* Dark text color */
+    height: 100vh;
+    overflow-y: hidden; 
+}
+
+#root {
+    height: 100%;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 10px;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: #0067A3; /* Slightly darker Trello blue */
+    color: white;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.zoom-controls button {
+    background-color: #0079BF;
+    color: white;
+    border: 1px solid #005282;
+    border-radius: 8px;
+    padding: 4px 8px;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.zoom-controls button:hover {
+    background-color: #026aa7;
+}
+.zoom-level-display {
+    margin-left: 10px;
+    font-size: 13px;
+    min-width: 40px; /* Ensure space for percentage */
+    text-align: right;
+}
+
+
+.add-list-form {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px; 
+    display: flex;
+    align-items: center;
+}
+
+.add-list-form input[type="text"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px; 
+    margin-right: 10px;
+    flex-grow: 1;
+    font-size: 14px;
+}
+
+.add-list-form button {
+    padding: 8px 15px;
+    background-color: #5aac44; 
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.add-list-form button:hover {
+    background-color: #61bd4f;
+}
+
+.lists-outer-container {
+    flex-grow: 1;
+    overflow: hidden; 
+    position: relative; 
+    cursor: grab; /* Indicates this area can be grabbed for scrolling */
+}
+
+.lists-container {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden; 
+    align-items: flex-start; 
+    padding-bottom: 20px; 
+    min-height: 150px; 
+    width: 100%; 
+    height: 100%; 
+    /* cursor: grab; Removed as outer container now handles this for drag-scrolling */
+}
+
+.routine-list {
+    background-color: #EBECF0; 
+    border-radius: 8px; 
+    padding: 10px;
+    margin-right: 10px;
+    width: 300px; 
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 160px); 
+    position: relative; 
+    cursor: grab; /* For list D&D itself */
+}
+
+.routine-list.dragging-list-visual { 
+    opacity: 0.7;
+    cursor: grabbing;
+}
+
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px; 
+    position: relative;
+    cursor: auto; 
+}
+
+
+.routine-list h2 {
+    font-size: 16px;
+    margin: 0; 
+    padding: 5px 0; 
+    color: #172b4d;
+    font-weight: 600;
+    flex-grow: 1; 
+    margin-right: 5px; 
+}
+
+.list-start-time-display {
+    font-size: 13px;
+    color: #5e6c84;
+    margin: 0 5px; 
+    white-space: nowrap;
+}
+
+.edit-list-time-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 3px;
+    font-size: 1em; 
+    color: #5e6c84;
+    border-radius: 8px; 
+}
+.edit-list-time-button:hover {
+    color: #172b4d;
+}
+
+
+.options-button {
+    background: none;
+    border: none;
+    font-size: 1.5em; 
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1; 
+    color: #5e6c84; 
+    margin-left: auto; 
+    border-radius: 8px; 
+}
+.options-button:hover {
+    color: #172b4d;
+}
+
+.options-menu {
+    position: absolute;
+    top: 100%; 
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    z-index: 10;
+    padding: 5px 0;
+    min-width: 150px;
+}
+.options-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #172b4d;
+    border-radius: 0; 
+}
+.options-menu button:hover {
+    background-color: #f4f5f7;
+}
+
+.card-options-menu { 
+   right: 0;
+   top: 25px; 
+}
+.list-options-menu {
+    right: 0;
+    top: 25px; 
+}
+
+
+.edit-form { 
+    margin-top: 8px;
+    padding: 10px;
+    background-color: #f4f5f7; 
+    border: 1px solid #dfe1e6;
+    border-radius: 8px; 
+    font-size: 13px;
+}
+.edit-form label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #172b4d;
+}
+.edit-form input[type="number"],
+.edit-form input[type="time"],
+.edit-form input[type="text"] { 
+    width: calc(100% - 22px); 
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px; 
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+.edit-form button {
+    padding: 6px 12px;
+    font-size: 13px;
+    margin-right: 5px;
+    background-color: #5aac44;
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+}
+.edit-form button:last-of-type { 
+    background-color: #aaa;
+}
+.edit-form button:hover {
+    opacity: 0.9;
+}
+
+.list-edit-form {
+    margin-bottom: 10px; 
+}
+
+
+.list-start-button {
+    background-color: #0079BF;
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 8px; 
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-size: 14px;
+    text-align: center;
+    width: 100%; 
+}
+
+.list-start-button:hover {
+    background-color: #026aa7;
+}
+
+.cards-container {
+    overflow-y: auto; 
+    overflow-x: hidden;
+    flex-grow: 1; 
+    padding-right: 5px; 
+    min-height: 50px; 
+}
+
+.routine-card {
+    background-color: #FFFFFF;
+    border-radius: 8px; 
+    box-shadow: 0 1px 2px rgba(9,30,66,.15), 0 0 1px rgba(9,30,66,.13); 
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    cursor: grab;
+    font-size: 14px;
+    position: relative; 
+    transition: opacity 0.1s ease-out; 
+}
+
+.routine-card.dragging { 
+    opacity: 0.5;
+}
+
+.routine-card:active { 
+    cursor: grabbing;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px; 
+    position: relative; 
+}
+.card-header p strong { 
+     font-weight: 500;
+     margin: 0; 
+     flex-grow: 1; 
+     margin-right: 5px; 
+}
+
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #5e6c84;
+    margin-top: 4px;
+}
+
+.card-time-info {
+    white-space: nowrap;
+}
+
+.card-duration-info {
+    white-space: nowrap;
+    margin-left: 10px; 
+}
+
+
+.routine-card--active {
+    background-color: #f0fff0; 
+    border-left: 4px solid #5aac44; 
+    padding-left: 6px; 
+}
+
+.routine-card .timer-display {
+    font-size: 13px;
+    font-weight: bold;
+    color: #c9302c; 
+    margin-top: 6px;
+    text-align: right;
+}
+
+.card-edit-form {
+    margin-top: 5px; 
+    margin-bottom: 5px; 
+}
+
+
+.add-routine-form {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #dfe1e6;
+    border-radius: 8px; 
+}
+
+.add-routine-form div {
+    margin-bottom: 8px;
+}
+
+.add-routine-form label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.add-routine-form input[type="text"],
+.add-routine-form input[type="time"],
+.add-routine-form input[type="number"] { 
+    width: calc(100% - 20px);
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px; 
+    font-size: 14px;
+}
+
+.add-routine-form button {
+    padding: 8px 15px;
+    background-color: #5aac44;
+    color: white;
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 5px;
+}
+.add-routine-form-button { 
+     border-radius: 8px;
+}
+
+.add-routine-form button:hover {
+    background-color: #61bd4f;
+}
+
+
+.dragging-placeholder { 
+    background-color: rgba(0,0,0,0.05);
+    border: 1px dashed #b0b0b0;
+    border-radius: 8px; 
+    height: 8px; 
+    margin: 4px 0; 
+    box-sizing: border-box;
+}
+
+.list-dragging-placeholder { 
+    background-color: rgba(0, 0, 0, 0.1);
+    border: 2px dashed #999;
+    border-radius: 8px; 
+    margin-right: 10px; 
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.app-footer {
+    text-align: center;
+    padding: 10px 0;
+    font-size: 12px;
+    color: #f0f0f0; 
+    background-color: #0067A3; 
+    border-top: 1px solid #005282;
+}
